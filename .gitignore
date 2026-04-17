@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.Python
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Demo videos (large binary assets — keep out of git)
+demo-videos/*.mp4
+demo-videos/*.mov
+demo-videos/*.avi
