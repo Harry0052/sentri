@@ -1,0 +1,9 @@
+fastapi==0.162.5
+uvicorn==0.54.0
+# uvicorn needs this package to serve the /ws route
+websockets==17.4
+# OpenCV 5 removed HOGDescriptor. This demo stays on 4.11.
+opencv-python-headless==4.11.0.86
+pytest==9.2.0
+# Starlette's TestClient in this FastAPI release expects httpx2
+httpx2==2.16.0

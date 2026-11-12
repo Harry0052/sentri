@@ -1,92 +1,82 @@
 # Sentri
 
-Retail computer-vision project aimed at entrance, aisle, and checkout camera feeds, including optional RTSP input.
+A small demo that plays one outdoor pedestrian clip, runs OpenCV’s built-in HOG people detector, and streams the annotated frames to a single-page dashboard.
 
-**Current status:** this repository is a scaffold. The tracked files are:
+![Dashboard during a local run: five boxes on the clip, occupancy 5, alert above the threshold of 2, and an enter/leave log](docs/dashboard.png)
 
-- `README.md` (this file)
-- `.env.example` (one empty variable, `RTSP_URL`)
-- `.gitignore`
-- `demo-videos/.gitkeep`
+The picture above is a frame from a local run of this app. The clip is looping, the WebSocket is connected, occupancy is 5, and the alert is on because that is greater than the threshold of 2.
 
-There is no application code, package manifest, Dockerfile, CI workflow, or committed demo video. `demo-videos/` exists so the directory is in git. It does not contain `entrance.mp4`, `aisle.mp4`, or `checkout.mp4`. `.gitignore` ignores `*.mp4`, `*.mov`, and `*.avi` under that folder, so clips added locally are not committed unless that rule changes.
+## What works
 
-Do not describe this repository as a running detection platform. On `main`, before this README, the only commit is the initial scaffold (2026-04-17). No frontend, API, detector, WebSocket server, or alert path is in the tree.
+- `scripts/fetch_sample.py` downloads OpenCV’s `samples/data/vtest.avi` from the 4.11.0 tag (Apache-2.0) and checks its SHA-256. The file is people walking outdoors past a building. It is not a store camera, and it is not committed (`demo-videos/*.avi` is gitignored).
+- A FastAPI process reads that file in a loop.
+- Detection is OpenCV 4.11’s default HOG+SVM people detector (`cv2.HOGDescriptor_getDefaultPeopleDetector`). `opencv-python-headless` is pinned to 4.11.0.86 because OpenCV 5 no longer provides `HOGDescriptor`.
+- A centroid tracker keeps a box across frames. A person is announced after 3 sightings. They are marked left after 10 missed frames. Those events are “Person N entered” and “Person N left”.
+- `GET /` serves the dashboard. `GET /health` reports detector, video path, threshold, and the current count.
+- `WS /ws` sends JSON about 10 times a second: base64 JPEG, `count`, `boxes` (`id`, `x`, `y`, `w`, `h`), the recent `events`, and `alert` when `count > threshold`.
+- The page shows the JPEG, the live count, the alert, and the event log.
+- `pytest` covers the tracker, a blank-frame detector call, the HTTP page, the health check, and one WebSocket message. If the sample file is present it also checks that HOG finds a person in the first 20 frames. CI downloads the clip so that check runs there.
+- `Dockerfile` builds an image that installs the requirements, downloads the clip, and starts uvicorn on port 8000.
+- `.github/workflows/ci.yml` installs the requirements, downloads the clip, and runs pytest on Python 3.12.
 
-## Intended scope
+Default alert threshold is 2 (`ALERT_THRESHOLD`). On this clip the count is often above that, so the alert is on for much of the loop.
 
-Not implemented. The README this file replaces described:
+## Limits
 
-- Demo clips in `demo-videos/`: `entrance.mp4`, `aisle.mp4`, `checkout.mp4`
-- An optional live stream via `RTSP_URL` in `.env`
+- `RTSP_URL` is still in `.env.example` and is not read. There is no live camera, and no entrance, aisle, or checkout split.
+- There is no Next.js app, database, login, or saved alert history. Events live in memory and reset when the process stops. When the file loops, current tracks are closed and new ids are issued.
+- YOLOv8 via `ultralytics` is not used. A current install pulls PyTorch and the CUDA wheels, which is a much larger stack than this demo. HOG needs no extra weight file.
+- HOG misses people in this clip and sometimes draws a box that is not a person. The id in the log is the tracker’s id, not a stable identity; flickering boxes create extra enter/leave lines.
+- Nothing here is deployed. GitHub Pages is not configured.
 
-That README listed Node.js, Python, and Docker Desktop as prerequisites. Nothing in the tree invokes them. Next.js, FastAPI, OpenCV, WebSockets, and PostgreSQL are not named by any file here, and there is no code that uses them. Anything said about those tools outside this repository is not verifiable from this tree.
+## Run
 
-## Demo
-
-There is no runnable app. The tree has no deployment workflow, Dockerfile, or Pages config.
-
-The clip paths from the previous README are not in git:
-
-```
-demo-videos/entrance.mp4
-demo-videos/aisle.mp4
-demo-videos/checkout.mp4
-```
-
-`.env.example` is only:
-
-```
-RTSP_URL=
-```
-
-The previous README showed this shape for a live camera:
-
-```
-RTSP_URL=rtsp://user:pass@host:554/stream
-```
-
-No file in the repository reads `RTSP_URL`.
-
-## Features
-
-Nothing in this repository is a shipped feature. There is no detection, tracking, alerting, dashboard, API, or video ingest.
-
-## Stack
-
-**Named in the README this file replaces, and unused by the tree:**
-
-- Node.js 20.9+
-- Python 3.11 or 3.12
-- Git
-- Docker Desktop
-
-There is no `package.json`, `requirements.txt`, `pyproject.toml`, or `Dockerfile`.
-
-## Architecture
-
-There is no ingest path, model, API, dashboard, or event store in this repository.
-
-## How to run
-
-There is no run command. Cloning the repo and copying the env file does not start a service:
+Python 3.12 is the version used for the tests and the Docker image.
 
 ```bash
-git clone https://github.com/Harry0052/sentri.git
-cd sentri
-cp .env.example .env
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python scripts/fetch_sample.py
+uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-`demo-videos/` can hold local files. `*.mp4`, `*.mov`, and `*.avi` there stay untracked.
+Open http://127.0.0.1:8000
 
-## Repository metadata
+Optional environment variables (`.env` is loaded if you create one from `.env.example`; existing variables win):
 
-GitHub settings for this repo are not changed by this file. At the time of writing they are:
+```bash
+ALERT_THRESHOLD=2
+VIDEO_PATH=demo-videos/sample.avi
+```
 
-- **Description:** unset
-- **Website:** unset
-- **Topics:** none
+Docker. The build downloads Python packages and the clip.
 
-A description that matches the tree is: scaffold for a retail computer-vision project on entrance, aisle, and checkout camera feeds (RTSP). No application code yet.
+```bash
+docker build -t sentri .
+docker run --rm -p 8000:8000 sentri
+```
 
-Topics such as `computer-vision`, `opencv`, `python`, and `nextjs` do not match the current files. There is no website to attach.
+That image was built and run locally. `GET /health` inside the container’s port returned `"status": "ok"` and a person count from this clip.
+
+## Tests
+
+```bash
+pytest -q
+```
+
+Without the clip, `test_sample_clip_contains_a_person` is skipped. `python scripts/fetch_sample.py` makes it run.
+
+## Layout
+
+| Path | Role |
+| --- | --- |
+| `app/detector.py` | HOG people detector |
+| `app/tracker.py` | Enter/leave tracking |
+| `app/pipeline.py` | Video loop, JPEG, snapshot |
+| `app/main.py` | FastAPI routes and WebSocket |
+| `static/` | Dashboard page |
+| `scripts/fetch_sample.py` | Download the clip |
+| `tests/` | pytest |
+| `Dockerfile` | Image that fetches the clip and serves the app |
+| `.github/workflows/ci.yml` | Install, fetch, pytest |
