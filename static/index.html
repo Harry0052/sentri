@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sentri</title>
+    <link rel="stylesheet" href="/static/dashboard.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <p class="eyebrow">Camera demo</p>
+          <h1>Sentri</h1>
+          <p class="lede">
+            Person boxes on a looping outdoor clip, with a live count and an
+            enter/leave log.
+          </p>
+        </div>
+        <p class="live" id="live"><i></i><span id="live-label">Connecting</span></p>
+      </header>
+
+      <main>
+        <section class="stage" aria-label="Camera">
+          <p class="error" id="error" hidden></p>
+          <img id="feed" alt="Annotated camera frame" />
+          <p class="caption" id="caption">Waiting for the first frame.</p>
+        </section>
+
+        <aside>
+          <section class="panel" aria-label="Occupancy">
+            <h2>Occupancy</h2>
+            <p class="count" id="count">–</p>
+            <p class="threshold" id="threshold">Alert threshold loads with the stream.</p>
+            <p class="alert" id="alert" role="alert" hidden></p>
+            <p class="calm" id="calm" hidden>Occupancy is within the threshold.</p>
+          </section>
+
+          <section class="panel" aria-label="Event log">
+            <h2>Event log</h2>
+            <p class="empty" id="empty">No one has entered or left yet.</p>
+            <ol class="log" id="log"></ol>
+          </section>
+        </aside>
+      </main>
+
+      <footer>
+        OpenCV HOG people detector. The clip is the OpenCV sample
+        <span class="mono">vtest.avi</span> (people walking outdoors) and loops from the start.
+      </footer>
+    </div>
+    <script src="/static/dashboard.js"></script>
+  </body>
+</html>

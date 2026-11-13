@@ -7,6 +7,7 @@ venv/
 env/
 .Python
 *.egg-info/
+.pytest_cache/
 
 # Node
 node_modules/
@@ -24,6 +25,7 @@ build/
 .vscode/
 .idea/
 *.swp
+.playwright-mcp/
 
 # Demo videos (large binary assets — keep out of git)
 demo-videos/*.mp4
